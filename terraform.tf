@@ -6,7 +6,7 @@ terraform {
     }
   }
   backend "s3" {
-    bucket = "reddit-bots"
+    bucket = "terraform-states-mikeacjones"
     region = "us-east-2"
     key    = "terraform.tfstate"
   }
