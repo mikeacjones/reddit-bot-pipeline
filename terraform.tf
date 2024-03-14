@@ -99,5 +99,5 @@ resource "aws_instance" "reddit-bot" {
   tags = {
     Name = "reddit-bot"
   }
-  user_data = templatefile("${path.module}/bootstrap.sh", {})
+  user_data = file("${path.module}/bootstrap.sh")
 }
