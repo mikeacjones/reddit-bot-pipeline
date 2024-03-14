@@ -47,6 +47,7 @@ for secret in $secrets_list; do
         cd "reddit-${bot_type}"
         if [ -f "bootstrap.sh" ]; then
             echo "Running bootstrap.sh for subreddit: $subreddit_name"
+            chmod +x bootstrap.sh
             ./bootstrap.sh "$subreddit_name"
             cd ..
         else
