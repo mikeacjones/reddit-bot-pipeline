@@ -4,6 +4,7 @@ on:
     branches:
       - main
       - master
+  workflow_dispatch:
 jobs:
   deploy-bot:
     runs-on: ubuntu-latest
