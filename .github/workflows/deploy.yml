@@ -1,10 +1,7 @@
 name: deploy-bot-server
 on:
-  push:
-    branches:
-      - main
-      - master
   workflow_dispatch:
+  repository_dispatch:
 jobs:
   deploy-bot:
     runs-on: ubuntu-latest
