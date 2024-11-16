@@ -35,7 +35,7 @@ resource "aws_iam_policy" "reddit-bot-policy" {
         Action = [
           "secretsmanager:GetSecretValue"
         ],
-        Resource = "arn:aws:secretsmanager:us-east-2:187533391436:secret:*bot*"
+        Resource = "arn:aws:secretsmanager:us-east-2:545009864443:secret:*bot*"
       }
     ]
   })
