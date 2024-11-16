@@ -92,6 +92,10 @@ resource "aws_instance" "reddit-bot" {
   instance_type        = "t4g.nano"
   key_name             = "michaels-personal-aws-kp"
   iam_instance_profile = aws_iam_instance_profile.reddit-bot-instance-profile.name
+  root_block_device {
+    volume_size = 8
+    volume_type = "gp3"
+  }
   metadata_options {
     http_endpoint = "enabled"
     http_tokens   = "required"
