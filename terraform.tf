@@ -93,7 +93,7 @@ resource "aws_instance" "reddit-bot" {
   key_name             = "michaels-personal-aws-kp"
   iam_instance_profile = aws_iam_instance_profile.reddit-bot-instance-profile.name
   root_block_device {
-    volume_size = 300
+    volume_size = 20
     volume_type = "gp3"
   }
   metadata_options {
