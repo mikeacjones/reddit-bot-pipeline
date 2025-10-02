@@ -90,7 +90,7 @@ data "aws_ami" "amazon-linux-2" {
 resource "aws_instance" "reddit-bot" {
   ami                  = data.aws_ami.amazon-linux-2.id
   instance_type        = "t4g.small"
-  key_name             = "michaels-personal-aws-kp"
+  key_name             = "personal-kp"
   iam_instance_profile = aws_iam_instance_profile.reddit-bot-instance-profile.name
   root_block_device {
     volume_size = 30
