@@ -34,6 +34,11 @@ jobs:
           echo "Cleanup complete"
 
       - name: Deploy bots
+        env:
+          # Bots directory is mounted from host into the runner container
+          BOTS_DIR: /home/runner/bots
+          # Deploy directory persists between runs
+          DEPLOY_DIR: /home/runner/deployed
         run: |
           chmod +x bootstrap.sh
           ./bootstrap.sh

@@ -13,8 +13,12 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BOTS_DIR="${SCRIPT_DIR}/bots"
-DEPLOY_DIR="${SCRIPT_DIR}/deployed"
+
+# BOTS_DIR can be set via environment variable (for Docker/CI), otherwise defaults to ./bots
+BOTS_DIR="${BOTS_DIR:-${SCRIPT_DIR}/bots}"
+
+# DEPLOY_DIR can also be overridden, defaults to ./deployed
+DEPLOY_DIR="${DEPLOY_DIR:-${SCRIPT_DIR}/deployed}"
 
 # Create deploy directory if it doesn't exist
 mkdir -p "$DEPLOY_DIR"
