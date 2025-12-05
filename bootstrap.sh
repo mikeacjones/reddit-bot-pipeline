@@ -83,8 +83,10 @@ for env_file in $env_files; do
     fi
 
     bot_dir="${DEPLOY_DIR}/reddit-${bot_type}"
+    container_name="reddit-${bot_type}-${subreddit_name}"
+    image_name="reddit-${bot_type}:latest"
 
-    # Navigate to the cloned directory and run bootstrap.sh with the subreddit name
+    # Navigate to the cloned directory and deploy
     if [ -d "$bot_dir" ]; then
         # Copy the .env file to the bot directory with appropriate naming
         env_dest="${bot_dir}/${subreddit_name}.env"
@@ -92,12 +94,35 @@ for env_file in $env_files; do
         cp "$env_file" "$env_dest"
 
         cd "$bot_dir"
+
         if [ -f "bootstrap.sh" ]; then
+            # Legacy: use bot's bootstrap script
             echo "  Running bootstrap.sh for subreddit: $subreddit_name"
             chmod +x bootstrap.sh
             ./bootstrap.sh "$subreddit_name"
+        elif [ -f "Dockerfile" ]; then
+            # New: build and run Docker container with env vars
+            echo "  Building Docker image: $image_name"
+            docker build -t "$image_name" .
+
+            # Stop and remove existing container if it exists
+            if docker ps -aq --filter "name=^${container_name}$" | grep -q .; then
+                echo "  Stopping existing container: $container_name"
+                docker stop "$container_name" 2>/dev/null || true
+                docker rm "$container_name" 2>/dev/null || true
+            fi
+
+            # Run container with env vars from .env file
+            echo "  Starting container: $container_name"
+            docker run -d \
+                --name "$container_name" \
+                --restart unless-stopped \
+                --env-file "$env_dest" \
+                "$image_name"
+
+            echo "  Container $container_name started"
         else
-            echo "  Warning: bootstrap.sh not found in $bot_dir"
+            echo "  Warning: No bootstrap.sh or Dockerfile found in $bot_dir"
         fi
         cd "$SCRIPT_DIR"
     else
