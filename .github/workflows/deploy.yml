@@ -1,32 +1,44 @@
 name: deploy-bot-server
+
 on:
   workflow_dispatch:
   repository_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'bots/**'
+      - 'bootstrap.sh'
+
 jobs:
-  deploy-bot:
-    runs-on: ubuntu-latest
+  deploy-bots:
+    runs-on: self-hosted
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Install Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_wrapper: false
-      - name: Terraform Init
-        run: terraform init
-      - name: Terraform Workspace
-        run: terraform workspace select -or-create reddit-bot-server
-      - name: Destroy Current Bot
+        uses: actions/checkout@v4
+
+      - name: Ensure Docker is running
         run: |
-          terraform destroy \
-            -auto-approve
-      - name: Deploy Bot
+          if ! docker info > /dev/null 2>&1; then
+            echo "Docker is not running. Please start Docker on the host."
+            exit 1
+          fi
+          echo "Docker is running"
+
+      - name: Stop existing bot containers
         run: |
-          terraform apply \
-            -auto-approve
+          echo "Stopping existing bot containers..."
+          docker ps -q --filter "name=reddit-" | xargs -r docker stop || true
+          docker ps -aq --filter "name=reddit-" | xargs -r docker rm || true
+          echo "Cleanup complete"
+
+      - name: Deploy bots
+        run: |
+          chmod +x bootstrap.sh
+          ./bootstrap.sh
+
+      - name: Show running containers
+        run: |
+          echo "=== Running Bot Containers ==="
+          docker ps --filter "name=reddit-"
