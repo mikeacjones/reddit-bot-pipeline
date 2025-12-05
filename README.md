@@ -8,14 +8,14 @@ A self-hosted deployment pipeline for Reddit bots using GitHub Actions and Docke
 GitHub Repository
        │
        ▼ (push to main / manual trigger)
-GitHub Actions (self-hosted runner)
+GitHub Actions Runner (Docker container)
        │
-       ▼
-Your Home Server
+       ▼ (via mounted Docker socket)
+Your Home Server / NAS
        │
        ├── Clones bot repositories
        ├── Copies .env files
-       └── Runs Docker containers
+       └── Runs bot Docker containers
 ```
 
 ## Directory Structure
@@ -29,49 +29,66 @@ reddit-bot-pipeline/
 │   └── joke-bot/
 │       └── jokes.env              # Credentials for r/jokes
 ├── deployed/                      # Cloned bot repos (gitignored)
+├── docker-compose.yml             # GitHub Actions runner setup
 ├── bootstrap.sh                   # Main deployment script
 └── .github/workflows/deploy.yml   # GitHub Actions workflow
 ```
 
-## Setup Instructions
+## Quick Start
 
-### 1. Install Prerequisites on Your Server
-
-```bash
-# Install Docker
-curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker $USER
-
-# Install Git
-sudo apt-get install git -y  # Debian/Ubuntu
-# or
-sudo yum install git -y      # RHEL/CentOS/Amazon Linux
-```
-
-### 2. Set Up GitHub Actions Self-Hosted Runner
-
-1. Go to your GitHub repository → Settings → Actions → Runners
-2. Click "New self-hosted runner"
-3. Select **Linux** and your architecture (x64 or ARM64)
-4. Follow the installation commands on your server:
+### 1. Clone the Repository on Your Server
 
 ```bash
-# Create a directory for the runner
-mkdir actions-runner && cd actions-runner
-
-# Download the runner (get latest URL from GitHub)
-curl -o actions-runner-linux-x64-2.311.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.311.0/actions-runner-linux-x64-2.311.0.tar.gz
-
-# Extract
-tar xzf ./actions-runner-linux-x64-2.311.0.tar.gz
-
-# Configure (use the token from GitHub)
-./config.sh --url https://github.com/YOUR_USERNAME/reddit-bot-pipeline --token YOUR_TOKEN
-
-# Install and start as a service
-sudo ./svc.sh install
-sudo ./svc.sh start
+git clone https://github.com/YOUR_USERNAME/reddit-bot-pipeline.git
+cd reddit-bot-pipeline
 ```
+
+### 2. Set Up the GitHub Actions Runner
+
+The runner runs as a Docker container and can deploy other containers to your host.
+
+#### Get a GitHub Token
+
+You need a Personal Access Token (PAT) with `repo` scope:
+
+1. Go to GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)
+2. Click "Generate new token (classic)"
+3. Give it a name like "NAS Runner"
+4. Select the `repo` scope (full control of private repositories)
+5. Generate and copy the token
+
+#### Configure and Start the Runner
+
+```bash
+# Copy the example environment file
+cp .env.example .env
+
+# Edit .env with your values
+nano .env  # or vim, or your preferred editor
+```
+
+Fill in your `.env`:
+```
+REPO_URL=https://github.com/YOUR_USERNAME/reddit-bot-pipeline
+ACCESS_TOKEN=ghp_your_token_here
+RUNNER_NAME=nas-runner
+```
+
+Start the runner:
+```bash
+docker compose up -d
+```
+
+Verify it's running:
+```bash
+# Check container status
+docker compose logs -f
+
+# You should see "Listening for Jobs" when ready
+```
+
+The runner will automatically register with GitHub. You can verify at:
+GitHub → Your Repo → Settings → Actions → Runners
 
 ### 3. Configure Your Bots
 
@@ -126,7 +143,25 @@ This will:
 
 3. Commit and push (or run `./bootstrap.sh` locally)
 
-## Managing Running Bots
+## Managing Services
+
+### Runner Management
+
+```bash
+# View runner logs
+docker compose logs -f
+
+# Restart the runner
+docker compose restart
+
+# Stop the runner
+docker compose down
+
+# Update runner to latest version
+docker compose pull && docker compose up -d
+```
+
+### Bot Management
 
 ```bash
 # View running bot containers
@@ -146,31 +181,53 @@ docker ps -q --filter "name=reddit-" | xargs docker stop
 
 - `.env` files are gitignored and should never be committed
 - Keep your `.env` files backed up securely outside of git
-- The self-hosted runner should be on a trusted network
-- Consider using Docker secrets for production deployments
+- The runner container has access to the Docker socket (required for deployments)
+- Use this setup only on trusted networks (home/internal)
+- Consider using a fine-grained PAT with minimal permissions
 
 ## Troubleshooting
 
-**Runner not picking up jobs:**
+**Runner not appearing in GitHub:**
 ```bash
-# Check runner status
-sudo ./svc.sh status
+# Check runner logs
+docker compose logs github-runner
 
-# View runner logs
-journalctl -u actions.runner.*
+# Verify token is correct in .env
+# Make sure REPO_URL matches your repository exactly
 ```
 
-**Docker permission denied:**
+**Runner container keeps restarting:**
 ```bash
-sudo usermod -aG docker $USER
-# Log out and back in
+# Check for errors
+docker compose logs --tail 50
+
+# Common issues:
+# - Invalid token (expired or wrong scope)
+# - Wrong REPO_URL
+# - Runner name already in use
 ```
 
-**Bot not starting:**
+**Bots not deploying:**
 ```bash
-# Check if .env file exists
-ls -la bots/{bot-type}/{subreddit}.env
+# Check if .env files exist in bots/ directory
+ls -la bots/*/
 
-# Check Docker logs
-docker logs reddit-{bot-type}-{subreddit}
+# Run bootstrap manually to see errors
+./bootstrap.sh
 ```
+
+**Docker socket permission denied:**
+```bash
+# The runner container needs access to /var/run/docker.sock
+# On some systems, you may need to adjust permissions:
+sudo chmod 666 /var/run/docker.sock
+
+# Or add the container to the docker group (handled automatically by the image)
+```
+
+**NAS-specific issues:**
+
+If running on Synology, QNAP, or similar:
+- Ensure Docker/Container Manager is installed
+- Use the terminal/SSH, not the GUI for docker compose
+- Check that the Docker socket path is correct (usually `/var/run/docker.sock`)

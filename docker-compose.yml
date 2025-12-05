@@ -1,0 +1,29 @@
+services:
+  github-runner:
+    image: myoung34/github-runner:latest
+    container_name: github-actions-runner
+    restart: unless-stopped
+    environment:
+      # Required: Get from GitHub → Settings → Actions → Runners → New self-hosted runner
+      REPO_URL: ${REPO_URL}
+      ACCESS_TOKEN: ${ACCESS_TOKEN}
+
+      # Runner configuration
+      RUNNER_NAME: ${RUNNER_NAME:-nas-runner}
+      RUNNER_WORKDIR: /tmp/runner/work
+      LABELS: ${LABELS:-self-hosted,linux}
+
+      # Disable automatic runner updates (container handles this)
+      DISABLE_AUTO_UPDATE: "true"
+    volumes:
+      # Mount Docker socket to allow deploying containers to host
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Persistent runner work directory
+      - runner-work:/tmp/runner/work
+      # Mount the bots directory so runner can access .env files
+      - ./bots:/home/runner/bots:ro
+    security_opt:
+      - label:disable
+
+volumes:
+  runner-work:
