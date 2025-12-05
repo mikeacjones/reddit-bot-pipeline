@@ -21,7 +21,7 @@ services:
       # Persistent runner work directory
       - runner-work:/tmp/runner/work
       # Mount the bots directory so runner can access .env files
-      - ./bots:/home/runner/bots:ro
+      - /share/docker/reddit-bots/bot-configs:/home/runner/bots:ro
       # Persistent directory for cloned bot repositories
       - ./deployed:/home/runner/deployed
     security_opt:

@@ -1,0 +1,58 @@
+name: monthly-scheduled-posts
+
+on:
+  # Run on the 1st of each month at 12:00 UTC
+  schedule:
+    - cron: '0 12 1 * *'
+  # Allow manual trigger for testing
+  workflow_dispatch:
+    inputs:
+      subreddit:
+        description: 'Subreddit to run monthly post for (leave empty for all)'
+        required: false
+        type: string
+
+jobs:
+  monthly-post:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run monthly posts
+        env:
+          BOTS_DIR: /home/runner/bots
+        run: |
+          echo "=== Running Monthly Posts ==="
+
+          # Find all trade-confirmation-bot subreddits (or filter by input)
+          for env_file in "$BOTS_DIR"/trade-confirmation-bot/*.env; do
+            if [ ! -f "$env_file" ]; then
+              echo "No trade-confirmation-bot .env files found"
+              exit 0
+            fi
+
+            subreddit=$(basename "$env_file" .env)
+
+            # If a specific subreddit was requested, skip others
+            if [ -n "${{ github.event.inputs.subreddit }}" ] && [ "$subreddit" != "${{ github.event.inputs.subreddit }}" ]; then
+              continue
+            fi
+
+            container_name="reddit-trade-confirmation-bot-${subreddit}"
+
+            echo "Processing monthly post for: $subreddit"
+
+            # Check if container is running
+            if docker ps --format '{{.Names}}' | grep -q "^${container_name}$"; then
+              echo "  Executing monthly post in container: $container_name"
+              docker exec "$container_name" python monthly_post.py || echo "  Warning: monthly post failed for $subreddit"
+            else
+              echo "  Warning: Container $container_name is not running"
+            fi
+
+            echo ""
+          done
+
+          echo "=== Monthly Posts Complete ==="

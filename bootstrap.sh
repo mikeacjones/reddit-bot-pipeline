@@ -20,6 +20,10 @@ BOTS_DIR="${BOTS_DIR:-${SCRIPT_DIR}/bots}"
 # DEPLOY_DIR can also be overridden, defaults to ./deployed
 DEPLOY_DIR="${DEPLOY_DIR:-${SCRIPT_DIR}/deployed}"
 
+# DEV mode - set to "True" to skip AWS credential fetching in bots
+# Can be overridden via environment variable
+export DEV="${DEV:-True}"
+
 # Create deploy directory if it doesn't exist
 mkdir -p "$DEPLOY_DIR"
 
@@ -93,9 +97,20 @@ for env_file in $env_files; do
 
         cd "$bot_dir"
         if [ -f "bootstrap.sh" ]; then
-            echo "  Running bootstrap.sh for subreddit: $subreddit_name"
+            echo "  Running bootstrap.sh for subreddit: $subreddit_name (DEV=$DEV)"
             chmod +x bootstrap.sh
-            ./bootstrap.sh "$subreddit_name"
+            # Run bot's bootstrap - don't fail pipeline if systemd/timer setup fails
+            # The bot container itself should still be running
+            if ! ./bootstrap.sh "$subreddit_name"; then
+                echo "  Warning: bootstrap.sh exited with error (systemd timers not available in container)"
+                echo "  Checking if container is running anyway..."
+                if docker ps --format '{{.Names}}' | grep -q "reddit-.*${subreddit_name}"; then
+                    echo "  Container is running - continuing"
+                else
+                    echo "  ERROR: Container failed to start"
+                    exit 1
+                fi
+            fi
         else
             echo "  Warning: bootstrap.sh not found in $bot_dir"
         fi
