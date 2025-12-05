@@ -1,0 +1,21 @@
+# Deployed bot repositories
+deployed/
+
+# Terraform files (no longer used)
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# Environment files
+.env
+*.env
+!*.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
