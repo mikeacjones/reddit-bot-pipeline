@@ -39,6 +39,8 @@ jobs:
           BOTS_DIR: /home/runner/bots
           # Deploy directory persists between runs
           DEPLOY_DIR: /home/runner/deployed
+          # Persistent data directory for bot containers
+          BOT_DATA_DIR: /home/runner/bot-data
         run: |
           chmod +x bootstrap.sh
           ./bootstrap.sh

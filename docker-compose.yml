@@ -18,14 +18,15 @@ services:
     volumes:
       # Mount Docker socket to allow deploying containers to host
       - /var/run/docker.sock:/var/run/docker.sock
-      # Persistent runner work directory
-      - runner-work:/tmp/runner/work
+      # Persistent runner work directory (bind mount for portability)
+      - ./runner-work:/tmp/runner/work
       # Mount the bots directory so runner can access .env files
       - /share/docker/reddit-bots/bot-configs:/home/runner/bots:ro
       # Persistent directory for cloned bot repositories
       - ./deployed:/home/runner/deployed
+      # Persistent data directory for bot containers
+      - ./bot-data:/home/runner/bot-data
     security_opt:
       - label:disable
 
-volumes:
-  runner-work:
+volumes: {}

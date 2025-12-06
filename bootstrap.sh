@@ -20,8 +20,12 @@ BOTS_DIR="${BOTS_DIR:-${SCRIPT_DIR}/bots}"
 # DEPLOY_DIR can also be overridden, defaults to ./deployed
 DEPLOY_DIR="${DEPLOY_DIR:-${SCRIPT_DIR}/deployed}"
 
-# Create deploy directory if it doesn't exist
+# BOT_DATA_DIR stores persistent data for each bot container
+BOT_DATA_DIR="${BOT_DATA_DIR:-${SCRIPT_DIR}/bot-data}"
+
+# Create directories if they don't exist
 mkdir -p "$DEPLOY_DIR"
+mkdir -p "$BOT_DATA_DIR"
 
 # Check if bots directory exists
 if [ ! -d "$BOTS_DIR" ]; then
@@ -112,12 +116,18 @@ for env_file in $env_files; do
                 docker rm "$container_name" 2>/dev/null || true
             fi
 
-            # Run container with env vars from .env file
+            # Create persistent data directory for this bot
+            bot_data_path="${BOT_DATA_DIR}/${bot_type}/${subreddit_name}"
+            mkdir -p "$bot_data_path"
+
+            # Run container with env vars from .env file and persistent storage
             echo "  Starting container: $container_name"
+            echo "  Data directory: $bot_data_path"
             docker run -d \
                 --name "$container_name" \
                 --restart unless-stopped \
                 --env-file "$env_dest" \
+                -v "${bot_data_path}:/data" \
                 "$image_name"
 
             echo "  Container $container_name started"
