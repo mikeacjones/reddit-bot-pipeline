@@ -118,6 +118,7 @@ for env_file in $env_files; do
                 --name "$container_name" \
                 --restart unless-stopped \
                 --env-file "$env_dest" \
+                --add-host host.docker.internal:host-gateway \
                 "$image_name"
 
             echo "  Container $container_name started"
