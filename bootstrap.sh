@@ -119,6 +119,7 @@ for env_file in $env_files; do
                 --restart unless-stopped \
                 --env-file "$env_dest" \
                 --add-host host.docker.internal:host-gateway \
+                --network temporal-network \
                 "$image_name"
 
             echo "  Container $container_name started"
