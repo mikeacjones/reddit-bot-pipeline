@@ -12,6 +12,7 @@
 
 set -e
 
+git config --global --add safe.directory '*' 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # BOTS_DIR can be set via environment variable (for Docker/CI), otherwise defaults to ./bots
