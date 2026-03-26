@@ -12,7 +12,7 @@
 
 set -e
 
-git config --global --add safe.directory '*' 
+git config --global --add safe.directory '*'
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # BOTS_DIR can be set via environment variable (for Docker/CI), otherwise defaults to ./bots
@@ -84,8 +84,6 @@ for env_file in $env_files; do
     fi
 
     bot_dir="${DEPLOY_DIR}/reddit-${bot_type}"
-    container_name="reddit-${bot_type}-${subreddit_name}"
-    image_name="reddit-${bot_type}:latest"
 
     # Navigate to the cloned directory and deploy
     if [ -d "$bot_dir" ]; then
@@ -95,6 +93,9 @@ for env_file in $env_files; do
         cp "$env_file" "$env_dest"
 
         cd "$bot_dir"
+        BUILD_ID=$(git rev-parse --short HEAD)
+        image_name="reddit-${bot_type}:${BUILD_ID}"
+        container_name="reddit-${bot_type}-${subreddit_name}-${BUILD_ID}"
 
         if [ -f "bootstrap.sh" ]; then
             # Legacy: use bot's bootstrap script
@@ -117,11 +118,17 @@ for env_file in $env_files; do
             echo "  Starting container: $container_name"
             docker run -d \
                 --name "$container_name" \
-                --restart unless-stopped \
+                --restart on-failure \
                 --env-file "$env_dest" \
+                --env BUILD_ID=$BUILD_ID \
                 --add-host host.docker.internal:host-gateway \
                 --network temporal-network \
                 "$image_name"
+
+            temporal worker deployment set-current-version \
+              --deployment-name "reddit-trade-confirmation-bot" \
+              --build-id "$BUILD_ID" \
+              --address host.docker.internal:7233
 
             echo "  Container $container_name started"
         else
