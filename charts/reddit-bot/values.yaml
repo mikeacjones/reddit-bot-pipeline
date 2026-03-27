@@ -7,7 +7,7 @@ subredditName: ""
 secretName: ""
 
 temporal:
-  namespace: default
+  namespace: reddit-bots
   connectionRef: temporal-connection
 
 replicas: 1
